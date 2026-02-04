@@ -298,20 +298,23 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
 
-            // Μετατροπή των δεδομένων για το Excel
-            // Θέλουμε να στείλουμε: "Μπύρα (x2), Τζατζίκι (x1)"
+            // 1. Ετοιμασία της Λίστας (Κείμενο)
             let itemsArray = [];
             for (const id in wishlist) {
                 itemsArray.push(`${wishlist[id].name} (x${wishlist[id].qty})`);
             }
 
+            // 2. Ετοιμασία του Συνόλου (Τιμή) - ΤΟ ΠΑΙΡΝΟΥΜΕ ΑΠΟ ΤΗΝ ΟΘΟΝΗ
+            const totalStr = document.getElementById("total-price").innerText; // π.χ. "15.50€"
+
             const dataToSend = {
                 table: table,
-                items: itemsArray // Προσοχή: Τώρα στέλνουμε strings, όχι objects, αλλά το Excel θα το καταλάβει
+                items: itemsArray,
+                total: totalStr // <--- Στέλνουμε το έτοιμο σύνολο!
             };
 
             // !!! ΒΑΛΕ ΤΟ LINK ΣΟΥ ΕΔΩ !!!
-            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjdZwfaazIVYeVpBlly0B3UZndZ16atikweRbTHqNUtxs9hPZovJqd_csL0wt_h2mJ/exec";
+            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzG0aoTF_-tV0kw0B55a1IyDa1q6n4nFmUnKRBDdcjrmC4vBvlx_QxMdJeO3djZgZna/exec";
 
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST", mode: "no-cors",
@@ -320,7 +323,7 @@
             })
             .then(() => {
                 alert(`✅ Παραγγελία εστάλη!\nΤραπέζι: ${table}`);
-                location.reload(); // Κάνουμε refresh για να καθαρίσει
+                location.reload(); 
             })
             .catch(err => {
                 console.error(err);
