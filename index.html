@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chiotis Wishlist</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* --- DESIGN & ΧΡΩΜΑΤΑ --- */
+        :root {
+            --primary-color: #1B4D3E; /* Σκούρο Πράσινο (Χιώτης) */
+            --secondary-color: #F5F5DC; /* Μπεζ / Κρεμ */
+            --accent-color: #D4AF37; /* Χρυσό/Μουσταρδί για κουμπιά */
+            --text-color: #333;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: var(--secondary-color); 
+            color: var(--text-color);
+            padding-bottom: 90px;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom-left-radius: 25px;
+            border-bottom-right-radius: 25px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .header h1 { margin: 0; font-size: 26px; letter-spacing: 1px; }
+        .header p { margin: 5px 0 15px; font-size: 14px; opacity: 0.9; }
+        
+        .table-input {
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            width: 60%;
+            outline: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* Κατηγορίες */
+        .category-title {
+            margin: 25px 15px 10px;
+            color: var(--primary-color);
+            border-left: 5px solid var(--accent-color);
+            padding-left: 10px;
+            font-size: 20px;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        /* Κάρτα Φαγητού */
+        .menu-item {
+            background: white;
+            margin: 12px 15px;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 1px solid transparent;
+        }
+        /* Όταν επιλέγεται, πρασινίζει λίγο */
+        .menu-item.active-item {
+            border-left: 5px solid var(--primary-color);
+            background-color: #fffdf5;
+        }
+        
+        .item-info h3 { margin: 0 0 5px; font-size: 17px; color: #222; }
+        .price { color: var(--primary-color); font-weight: bold; font-size: 15px; }
+
+        /* Κουμπί Προσθήκης (+) */
+        .btn-add {
+            background-color: #eee;
+            border: none;
+            width: 45px; height: 45px;
+            border-radius: 50%;
+            color: var(--primary-color);
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-add.selected { 
+            background-color: var(--primary-color); 
+            color: white; 
+            transform: scale(1.1);
+        }
+
+        /* Κάτω Μπάρα */
+        .bottom-bar {
+            position: fixed;
+            bottom: 15px; left: 15px; right: 15px;
+            background: var(--primary-color);
+            color: white;
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+        .total-info b { font-size: 20px; color: var(--accent-color); }
+        
+        .btn-save {
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .btn-save:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><i class="fas fa-utensils"></i> ΤΑΒΕΡΝΑ ΧΙΩΤΗΣ</h1>
+        <p>Παραδοσιακές Γεύσεις</p>
+        <input type="number" id="table-num" class="table-input" placeholder="Αρ. Τραπεζιού (π.χ. 5)" min="1">
+    </div>
+
+    <div id="menu-container">
+        </div>
+
+    <div class="bottom-bar">
+        <div class="total-info">
+            Επιλογές: <b id="count">0</b><br>
+            <span style="font-size:12px; opacity:0.8">Πατήστε Αποθήκευση</span>
+        </div>
+        <button id="btn-submit" class="btn-save" onclick="submitWishlist()" disabled>
+            Αποθήκευση <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+    <script>
+        // --- 1. ΤΑ ΔΕΔΟΜΕΝΑ ΜΑΣ ---
+        // --- ΑΥΤΟΜΑΤΗ ΑΝΑΓΝΩΡΙΣΗ ΤΡΑΠΕΖΙΟΥ ΑΠΟ ΤΟ LINK ---
+        window.onload = function() {
+            // 1. Διαβάζουμε το Link
+            const urlParams = new URLSearchParams(window.location.search);
+            const tableParam = urlParams.get('table');
+
+            // 2. Αν υπάρχει νούμερο τραπεζιού στο Link...
+            if (tableParam) {
+                const inputField = document.getElementById("table-num");
+                inputField.value = tableParam; // Το γράφουμε στο κουτάκι
+                inputField.readOnly = true;    // Το κλειδώνουμε (να μην αλλάζει)
+                inputField.style.backgroundColor = "#e8f5e9"; // Το πρασινίζουμε λίγο
+                inputField.style.color = "#1B4D3E";
+            }
+        };
+        
+        // Σταθερό Μενού
+        const fixedMenu = [
+            { category: "🥗 Σαλάτες", items: [
+                { id: 101, name: "Σαλάτα Χιώτης", price: 9.00 },
+                { id: 102, name: "Χωριάτικη", price: 8.50 },
+                { id: 103, name: "Κοτοσαλάτα", price: 9.50 },
+                { id: 104, name: "Πράσινη", price: 7.00 },
+                { id: 105, name: "Λάχανο-Καρότο", price: 5.00 }
+            ]},
+            { category: "🧀 Ορεκτικά", items: [
+                { id: 201, name: "Τζατζίκι", price: 3.50 },
+                { id: 202, name: "Ντακάκια", price: 5.00 },
+                { id: 203, name: "Λαχανοντολμάδες", price: 8.00 },
+                { id: 204, name: "Σαγανάκι", price: 6.00 },
+                { id: 205, name: "Συκώτι Σαβόρε", price: 9.00 }
+            ]},
+            { category: "🍖 Κυρίως Πιάτα", items: [
+                { id: 301, name: "Κοτόπουλο Ψητό", price: 9.50 },
+                { id: 302, name: "Πανσέτα Ψητή", price: 9.00 },
+                { id: 303, name: "Μπιφτέκια Μοσχ.", price: 10.00 },
+                { id: 304, name: "Μπριζολάκια Λαιμού", price: 11.00 },
+                { id: 305, name: "Burger Χιώτης", price: 12.00 }
+            ]},
+            { category: "🍺 Ποτά", items: [
+                { id: 401, name: "Coca Cola", price: 2.50 },
+                { id: 402, name: "Μπύρα", price: 4.00 },
+                { id: 403, name: "Κρασί (500ml)", price: 5.00 },
+                { id: 404, name: "Νερό (1L)", price: 1.00 },
+                { id: 405, name: "Ρετσίνα", price: 4.50 }
+            ]}
+        ];
+
+        // --- ΤΟ ΕΞΥΠΝΟ ΣΥΣΤΗΜΑ ΓΙΑ ΤΑ ΜΑΓΕΙΡΕΥΤΑ ---
+        // 0:Κυριακή, 1:Δευτέρα, ... 6:Σάββατο
+        const dailySpecialsDB = {
+            1: [ // Δευτέρα
+                {id: 901, name: "Φασολάδα", price: 6.00},
+                {id: 902, name: "Μοσχάρι Κοκκινιστό", price: 12.00}
+            ],
+            2: [ // Τρίτη
+                {id: 903, name: "Γεμιστά", price: 8.00},
+                {id: 904, name: "Κοτόπουλο Φούρνου", price: 9.00}
+            ],
+            3: [ // Τετάρτη
+                {id: 905, name: "Ρεβύθια", price: 6.00},
+                {id: 906, name: "Παστίτσιο", price: 10.00}
+            ],
+            4: [ // Πέμπτη
+                {id: 907, name: "Γιουβαρλάκια", price: 8.00},
+                {id: 908, name: "Χοιρινό Σελινατο", price: 11.00}
+            ],
+            5: [ // Παρασκευή
+                {id: 909, name: "Γίγαντες", price: 6.50},
+                {id: 910, name: "Μπακαλιάρος Σκορδαλιά", price: 12.00}
+            ],
+            6: [ // Σάββατο
+                {id: 911, name: "Μουσακάς", price: 10.00},
+                {id: 912, name: "Αρνάκι Λεμονάτο", price: 13.00}
+            ],
+            0: [ // Κυριακή
+                {id: 913, name: "Γουρουνόπουλο", price: 14.00},
+                {id: 914, name: "Μακαρόνια με κιμά", price: 8.00}
+            ]
+        };
+
+        let wishlist = [];
+
+        // --- LOGIC ---
+
+        function renderMenu() {
+            const container = document.getElementById("menu-container");
+            let html = "";
+
+            // 1. Βρίσκουμε τι μέρα είναι σήμερα για τα Μαγειρευτά
+            const today = new Date();
+            const dayIndex = today.getDay(); // 0-6
+            const daysNames = ["Κυριακή", "Δευτέρα", "Τρίτη", "Τετάρτη", "Πέμπτη", "Παρασκευή", "Σάββατο"];
+            
+            // Εμφάνιση Μαγειρευτών (αν υπάρχουν για σήμερα)
+            const todaysSpecials = dailySpecialsDB[dayIndex];
+            if (todaysSpecials) {
+                html += `<h2 class="category-title">🍳 Πιάτα Ημέρας (${daysNames[dayIndex]})</h2>`;
+                todaysSpecials.forEach(item => {
+                    html += createItemHTML(item);
+                });
+            }
+
+            // 2. Εμφάνιση Σταθερού Μενού
+            fixedMenu.forEach(cat => {
+                html += `<h2 class="category-title">${cat.category}</h2>`;
+                cat.items.forEach(item => {
+                    html += createItemHTML(item);
+                });
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Βοηθητική για να φτιάχνει το HTML του κάθε φαγητού
+        function createItemHTML(item) {
+            return `
+            <div class="menu-item" id="card-${item.id}" onclick="toggleItem(${item.id}, '${item.name}', ${item.price})">
+                <div class="item-info">
+                    <h3>${item.name}</h3>
+                    <span class="price">${item.price.toFixed(2)}€</span>
+                </div>
+                <button class="btn-add" id="btn-${item.id}">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>`;
+        }
+
+        // Toggle Επιλογής
+        function toggleItem(id, name, price) {
+            const btn = document.getElementById(`btn-${id}`);
+            const card = document.getElementById(`card-${id}`);
+            
+            // Έλεγχος αν υπάρχει ήδη
+            const exists = wishlist.find(i => i.id === id);
+
+            if (exists) {
+                // Αφαίρεση
+                wishlist = wishlist.filter(i => i.id !== id);
+                btn.classList.remove("selected");
+                card.classList.remove("active-item");
+                btn.innerHTML = '<i class="fas fa-plus"></i>';
+            } else {
+                // Προσθήκη
+                wishlist.push({id, name, price});
+                btn.classList.add("selected");
+                card.classList.add("active-item");
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById("count").innerText = wishlist.length;
+            document.getElementById("btn-submit").disabled = wishlist.length === 0;
+        }
+
+        function submitWishlist() {
+            const table = document.getElementById("table-num").value;
+            const btn = document.getElementById("btn-submit");
+
+            // 1. Έλεγχος: Έβαλε τραπέζι;
+            if (!table) {
+                alert("⚠️ Παρακαλώ γράψε τον αριθμό του τραπεζιού σου (πάνω δεξιά)!");
+                document.querySelector('.header').scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+
+            // 2. Κλείδωμα κουμπιού (Loading effect)
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Στέλνουμε...';
+
+            // 3. Ετοιμασία δεδομένων
+            const dataToSend = {
+                table: table,
+                items: wishlist
+            };
+
+            // 4. ΤΟ LINK ΣΟΥ (Το έβαλα εγώ!)
+            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjdZwfaazIVYeVpBlly0B3UZndZ16atikweRbTHqNUtxs9hPZovJqd_csL0wt_h2mJ/exec";
+
+            // 5. Αποστολή στο Google Sheet
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors", // Σημαντικό: Επιτρέπει την αποστολή χωρίς να μπλοκάρει ο browser
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(dataToSend)
+            })
+            .then(response => {
+                // --- ΕΠΙΤΥΧΙΑ ---
+                alert(`✅ Η παραγγελία εστάλη!\n\nΤραπέζι: ${table}\n\nΘα έρθουμε άμεσα για επιβεβαίωση!`);
+                
+                // Καθαρισμός Λίστας & UI
+                wishlist = [];
+                document.getElementById("table-num").value = ""; 
+                updateUI();
+                
+                // Επαναφορά κουμπιών (ξε-πρασινίζουν)
+                document.querySelectorAll(".btn-add").forEach(b => {
+                    b.classList.remove("selected");
+                    b.innerHTML = '<i class="fas fa-plus"></i>';
+                });
+                document.querySelectorAll(".menu-item").forEach(c => c.classList.remove("active-item"));
+
+                // Επαναφορά κεντρικού κουμπιού
+                btn.innerHTML = 'Αποθήκευση <i class="fas fa-arrow-right"></i>';
+                btn.disabled = true; // Απενεργοποίηση μέχρι να ξαναδιαλέξει κάτι
+            })
+            .catch(error => {
+                // --- ΣΦΑΛΜΑ ---
+                console.error("Error:", error);
+                alert("❌ Κάτι πήγε στραβά. Προσπαθήστε ξανά ή φωνάξτε τον σερβιτόρο.");
+                btn.disabled = false;
+                btn.innerHTML = 'Αποθήκευση <i class="fas fa-arrow-right"></i>';
+            });
+        }
+
+        // Εκκίνηση
+        renderMenu();
+
+    </script>
+</body>
+</html>
